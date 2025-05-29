@@ -69,4 +69,23 @@ class SSHHelper:
             return None
     
     def format_ssh_metadata(self, ssh_key):
-        return f"{self.config.ssh_username}:{ssh_key}" 
+        return f"{self.config.ssh_username}:{ssh_key}"
+    
+    def generate_user_data(self, ssh_key):
+        return f"""#cloud-config
+users:
+  - name: {self.config.ssh_username}
+    groups: sudo
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh_authorized_keys:
+      - {ssh_key}
+    lock_passwd: false
+
+runcmd:
+  - systemctl enable ssh
+  - systemctl start ssh
+  - mkdir -p /home/{self.config.ssh_username}/.ssh
+  - chmod 700 /home/{self.config.ssh_username}/.ssh
+  - chown {self.config.ssh_username}:{self.config.ssh_username} /home/{self.config.ssh_username}/.ssh
+""" 

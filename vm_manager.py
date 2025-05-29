@@ -33,7 +33,6 @@ class YandexCloudVMManager:
                 return False
                 
             self.sdk = yandexcloud.SDK(token=self.config.token)
-            print("SDK инициализирован успешно")
             return True
             
         except Exception as e:
@@ -52,6 +51,10 @@ class YandexCloudVMManager:
             ssh_key = self.config.get_default_ssh_key()
             if not ssh_key:
                 return False
+            
+            user_data = self.ssh_helper.generate_user_data(ssh_key)
+            
+            print(f"Создание пользователя: {self.config.ssh_username}")
             
             request = CreateInstanceRequest(
                 folder_id=self.config.folder_id,
@@ -81,7 +84,8 @@ class YandexCloudVMManager:
                     }
                 }],
                 metadata={
-                    "ssh-keys": self.ssh_helper.format_ssh_metadata(ssh_key)
+                    "ssh-keys": self.ssh_helper.format_ssh_metadata(ssh_key),
+                    "user-data": user_data
                 }
             )
             
