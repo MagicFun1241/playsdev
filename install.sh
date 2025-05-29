@@ -203,14 +203,6 @@ verify_installation() {
         local version=$(yc version 2>/dev/null || echo "unknown")
         echo "Yandex Cloud CLI установлен успешно!"
         echo "Версия: $version"
-        
-        echo "Для начала работы выполните:"
-        echo "  yc init"
-        echo ""
-        echo "Или установите токен и folder-id:"
-        echo "  export YC_TOKEN=your_token"
-        echo "  export YC_FOLDER_ID=your_folder_id"
-        
         return 0
     else
         echo "Установка не удалась или yc не найден в PATH"
@@ -222,9 +214,7 @@ verify_installation() {
     fi
 }
 main() {
-    echo "🌩️  Yandex Cloud CLI Installer"
-    echo "=================================="
-    echo ""
+    echo "Yandex Cloud CLI Installer"
     
     detect_os
     
