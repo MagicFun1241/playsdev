@@ -90,8 +90,6 @@ install_deps_redhat() {
 }
 
 install_macos() {
-    echo "Установка Yandex Cloud CLI"
-    
     if command_exists brew; then
         echo "Используем Homebrew для установки..."
         brew install yandex-cloud-cli
@@ -101,10 +99,11 @@ install_macos() {
     echo "Homebrew не найден, устанавливаем вручную..."
     
     ARCH=$(uname -m)
+
     if [[ "$ARCH" == "arm64" ]]; then
-        DOWNLOAD_URL="https://storage.yandexcloud.net/yandexcloud-yc/release/0.112.0/darwin/arm64/yc"
+        DOWNLOAD_URL="https://storage.yandexcloud.net/yandexcloud-yc/release/0.149.0/darwin/arm64/yc"
     else
-        DOWNLOAD_URL="https://storage.yandexcloud.net/yandexcloud-yc/release/0.112.0/darwin/amd64/yc"
+        DOWNLOAD_URL="https://storage.yandexcloud.net/yandexcloud-yc/release/0.149.0/darwin/amd64/yc"
     fi
     
     INSTALL_DIR="$HOME/.local/bin"
@@ -118,8 +117,6 @@ install_macos() {
 }
 
 install_ubuntu() {
-    echo "Установка Yandex Cloud CLI"
-    
     install_deps_ubuntu
     
     curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash
@@ -130,8 +127,6 @@ install_ubuntu() {
 }
 
 install_redhat() {
-    echo "Установка Yandex Cloud CLI"
-    
     install_deps_redhat
     
     curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash
@@ -141,15 +136,13 @@ install_redhat() {
     fi
 }
 install_windows() {
-    echo "Установка Yandex Cloud CLI на Windows..."
-    
     if [[ $(uname -m) == "x86_64" ]]; then
         ARCH="amd64"
     else
         ARCH="386"
     fi
     
-    DOWNLOAD_URL="https://storage.yandexcloud.net/yandexcloud-yc/release/0.112.0/windows/$ARCH/yc.exe"
+    DOWNLOAD_URL="https://storage.yandexcloud.net/yandexcloud-yc/release/0.149.0/windows/$ARCH/yc.exe"
     
     INSTALL_DIR="$HOME/.local/bin"
     mkdir -p "$INSTALL_DIR"
@@ -228,6 +221,8 @@ main() {
             exit 0
         fi
     fi
+
+    echo "Установка Yandex Cloud CLI"
     
     case "$OS" in
         "Ubuntu"|"Debian"*|"Linux Mint")
