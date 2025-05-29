@@ -6,19 +6,24 @@ detect_os() {
             . /etc/os-release
             OS=$NAME
             VER=$VERSION_ID
+        # ubuntu
         elif type lsb_release >/dev/null 2>&1; then
             OS=$(lsb_release -si)
             VER=$(lsb_release -sr)
+        # debian
         elif [ -f /etc/lsb-release ]; then
             . /etc/lsb-release
             OS=$DISTRIB_ID
             VER=$DISTRIB_RELEASE
+        # debian
         elif [ -f /etc/debian_version ]; then
             OS=Debian
             VER=$(cat /etc/debian_version)
+        # redhat
         elif [ -f /etc/redhat-release ]; then
             OS=RedHat
             VER=$(cat /etc/redhat-release)
+        # unknown
         else
             OS=$(uname -s)
             VER=$(uname -r)
@@ -161,6 +166,7 @@ install_windows() {
     
     add_to_path "$INSTALL_DIR"
 }
+
 add_to_path() {
     local dir="$1"
     local shell_rc=""
@@ -182,6 +188,7 @@ add_to_path() {
         echo "Путь $dir уже есть в PATH"
     fi
 }
+
 verify_installation() {
     echo "Проверка установки..."
     
@@ -194,7 +201,7 @@ verify_installation() {
     
     if command_exists yc; then
         local version=$(yc version 2>/dev/null || echo "unknown")
-        echo "Yandex Cloud CLI установлен успешно!"
+        echo "Yandex Cloud CLI установлен"
         echo "Версия: $version"
         return 0
     else
@@ -206,6 +213,7 @@ verify_installation() {
         return 1
     fi
 }
+
 main() {
     echo "Yandex Cloud CLI Installer"
     
@@ -255,4 +263,5 @@ main() {
     echo ""
     verify_installation
 }
+
 main "$@" 
