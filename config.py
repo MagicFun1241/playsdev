@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
 
 import os
-import sys
 
 class Config:
     def __init__(self):
         self.token = None
         self.folder_id = None
         self.subnet_id = None
-        self.zone_id = "ru-central1-a"
-        self.platform_id = "standard-v3"
+        self.zone_id = "ru-central1-b"
+        self.platform_id = "standard-v2"
         
-        self.default_memory = 1 * 1024 * 1024 * 1024
-        self.default_cores = 1
-        self.default_core_fraction = 100
+        self.default_memory = 1 * 1024 * 1024 * 1024  # 1GB
+        self.default_cores = 2
+        self.default_core_fraction = 5  # 5%
         self.default_disk_size = 10 * 1024 * 1024 * 1024
         self.default_disk_type = "network-hdd"
         self.default_image_id = "fd8kdq6d0p8sij7h5qe3"
@@ -44,6 +43,14 @@ class Config:
             self.subnet_id = os.getenv('YC_SUBNET_ID')
             if not self.subnet_id:
                 raise ValueError("Не указан YC_SUBNET_ID")
+            
+            zone_from_env = os.getenv('YC_ZONE_ID')
+            
+            if zone_from_env:
+                self.zone_id = zone_from_env
+                print(f"Используется зона из переменной окружения: {self.zone_id}")
+            else:
+                print(f"Используется зона по умолчанию: {self.zone_id}")
                 
             return True
             

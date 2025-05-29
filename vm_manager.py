@@ -92,7 +92,13 @@ class YandexCloudVMManager:
                 return False
                 
             operation = self._get_operation(operation.id)
-            self.instance_id = operation.response.value
+            
+            # Parse the protobuf response to get the instance ID
+            from yandex.cloud.compute.v1.instance_pb2 import Instance
+            instance_response = Instance()
+            instance_response.ParseFromString(operation.response.value)
+            self.instance_id = instance_response.id
+            
             print(f"VM создана успешно! ID: {self.instance_id}")
             
             self.get_vm_info()
