@@ -57,4 +57,10 @@ variable "ssh_access_rules" {
     ip_address  = string
     description = string
   }))
+}
+
+variable "ssh_user" {
+  description = "Пользователь для SSH подключения"
+  type        = string
+  default     = "ubuntu"
 } 

@@ -26,7 +26,7 @@ servers_config = {
     cores     = 2
     memory    = 2
     disk_size = 10
-    image_id  = "fd8kdq6d0p8sij7h5qe3"
+    image_id  = "fd82up3o0u6o36dbto2h"
     sg_config = {
       ingress_rules = [
         {
@@ -58,7 +58,7 @@ servers_config = {
     cores     = 2
     memory    = 2
     disk_size = 10
-    image_id  = "fd8kdq6d0p8sij7h5qe3"
+    image_id  = "fd82up3o0u6o36dbto2h"
     sg_config = {
       ingress_rules = [
         {

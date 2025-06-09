@@ -46,6 +46,12 @@ variable "enable_postgres" {
   default     = true
 }
 
+variable "ssh_user" {
+  description = "Пользователь для SSH"
+  type        = string
+  default     = "ubuntu"
+}
+
 variable "ssh_access_rules" {
   description = "Правила доступа по SSH"
   type = map(object({

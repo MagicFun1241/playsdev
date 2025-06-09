@@ -5,6 +5,7 @@ terraform {
       version = "0.142"
     }
   }
+  
   required_version = ">= 1.0"
 }
 
@@ -29,6 +30,7 @@ module "postgres" {
   db_name        = var.db_name
   db_user        = var.db_user
   db_password    = var.db_password
+
   network_id     = module.vpc.vpc_id
   subnet_id      = module.vpc.private_subnet_id
   zone          = var.default_zone
@@ -39,8 +41,12 @@ module "compute-cloud" {
   
   servers_config = var.servers_config
   network_id     = module.vpc.vpc_id
+
   public_subnet_id = module.vpc.public_subnet_id
   private_subnet_id = module.vpc.private_subnet_id
+
   zone          = var.default_zone
+
   ssh_access_rules = var.ssh_access_rules
+  ssh_user         = var.ssh_user
 } 

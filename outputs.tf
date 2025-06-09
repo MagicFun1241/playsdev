@@ -10,7 +10,6 @@ output "vpc_info" {
 output "servers_info" {
   description = "Информация о серверах"
   value       = module.compute-cloud.servers_info
-  sensitive   = true
 }
 
 output "bastion_external_ip" {

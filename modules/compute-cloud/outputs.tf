@@ -9,7 +9,6 @@ output "servers_info" {
       status      = server.status
     }
   }
-  sensitive = true
 }
 
 output "security_groups" {
