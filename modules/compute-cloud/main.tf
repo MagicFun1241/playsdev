@@ -12,14 +12,14 @@ locals {
             protocol          = rule.protocol
             port_range        = rule.port_range
             predefined_target = rule.predefined_target
-            cidr_blocks       = (rule.port_range.from == 22 && rule.port_range.to == 22) ? concat(
+            cidr_blocks = (rule.port_range.from == 22 && rule.port_range.to == 22) ? concat(
               rule.cidr_blocks != null ? rule.cidr_blocks : [],
               [for ssh_rule in var.ssh_access_rules : ssh_rule.ip_address]
             ) : rule.cidr_blocks
-            description       = rule.description
+            description = rule.description
           }
         ]
-        
+
         egress_rules = server_config.sg_config.egress_rules
       }
     }
@@ -46,7 +46,7 @@ resource "yandex_vpc_security_group" "server_sg" {
 
   dynamic "egress" {
     for_each = local.ssh_processed_servers[each.key].sg_config.egress_rules
-    
+
     content {
       protocol          = egress.value.protocol
       from_port         = egress.value.port_range.from
@@ -68,8 +68,8 @@ resource "yandex_compute_disk" "server_disk" {
 }
 
 resource "yandex_compute_instance" "servers" {
-  for_each    = var.servers_config
-  zone        = var.zone
+  for_each = var.servers_config
+  zone     = var.zone
 
   name        = each.key
   platform_id = "standard-v3"
@@ -92,4 +92,4 @@ resource "yandex_compute_instance" "servers" {
   metadata = {
     ssh-keys = "${var.ssh_user}:${file("~/.ssh/id_rsa.pub")}"
   }
-} 
+}

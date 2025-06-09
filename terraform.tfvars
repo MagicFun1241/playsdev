@@ -47,6 +47,38 @@ servers_config = {
       ]
     }
   }
+
+   "demo" = {
+    is_public = true
+    cores     = 2
+    memory    = 2
+    disk_size = 10
+    image_id  = "fd82up3o0u6o36dbto2h"
+    sg_config = {
+      ingress_rules = [
+        {
+          protocol = "TCP"
+          port_range = {
+            from = 22
+            to   = 22
+          }
+          cidr_blocks = ["0.0.0.0/0"]  # Будет заменено на IP из ssh_access_rules
+          description = "SSH access"
+        }
+      ]
+      egress_rules = [
+        {
+          protocol = "ANY"
+          port_range = {
+            from = 0
+            to   = 65535
+          }
+          cidr_blocks = ["0.0.0.0/0"]
+          description = "All outbound traffic"
+        }
+      ]
+    }
+  }
   
   "private_server" = {
     is_public = false
@@ -90,4 +122,4 @@ servers_config = {
   }
 }
 
-enable_postgres = false
+enable_postgres = true
