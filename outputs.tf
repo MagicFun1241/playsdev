@@ -20,6 +20,6 @@ output "bastion_external_ip" {
 
 output "postgres_info" {
   description = "Информация о PostgreSQL"
-  value       = module.postgres.postgres_info
+  value       = var.enable_postgres ? module.postgres[0].postgres_info : null
   sensitive   = true
 } 

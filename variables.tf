@@ -40,6 +40,12 @@ variable "db_password" {
   sensitive   = true
 }
 
+variable "enable_postgres" {
+  description = "Включить развертывание PostgreSQL кластера"
+  type        = bool
+  default     = true
+}
+
 variable "ssh_access_rules" {
   description = "Правила доступа по SSH"
   type = map(object({

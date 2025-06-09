@@ -24,6 +24,8 @@ module "vpc" {
 module "postgres" {
   source = "./modules/postgres"
   
+  count = var.enable_postgres ? 1 : 0
+  
   db_name        = var.db_name
   db_user        = var.db_user
   db_password    = var.db_password
