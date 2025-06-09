@@ -1,12 +1,28 @@
-# Python-generated files
-__pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
+# Terraform files
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraform/
+.terraform.lock.hcl
+crash.log
+crash.*.log
 
-# Virtual environments
-.venv
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# SSH keys
+*.pem
+*.key
+id_rsa* 
 
 .env
+
+README.md
