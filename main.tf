@@ -1,14 +1,3 @@
-terraform {
-  required_providers {
-    yandex = {
-      source  = "yandex-cloud/yandex"
-      version = "0.142"
-    }
-  }
-  
-  required_version = ">= 1.0"
-}
-
 provider "yandex" {
   zone = var.default_zone
 }
@@ -39,7 +28,7 @@ module "postgres" {
 module "compute-cloud" {
   source = "./modules/compute-cloud"
   
-  servers = var.servers
+  servers_config = var.servers_config
   network_id     = module.vpc.vpc_id
 
   public_subnet_id = module.vpc.public_subnet_id

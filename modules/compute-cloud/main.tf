@@ -1,6 +1,6 @@
 locals {
   ssh_processed_servers = {
-    for server_name, server_config in var.servers : server_name => {
+    for server_name, server_config in var.servers_config : server_name => {
       is_public = server_config.is_public
       cores     = server_config.cores
       memory    = server_config.memory
@@ -12,7 +12,10 @@ locals {
             protocol          = rule.protocol
             port_range        = rule.port_range
             predefined_target = rule.predefined_target
-            cidr_blocks       = (rule.port_range.from == 22 && rule.port_range.to == 22) ? [for ssh_rule in var.ssh_access_rules : ssh_rule.ip_address] : rule.cidr_blocks
+            cidr_blocks       = (rule.port_range.from == 22 && rule.port_range.to == 22) ? concat(
+              rule.cidr_blocks != null ? rule.cidr_blocks : [],
+              [for ssh_rule in var.ssh_access_rules : ssh_rule.ip_address]
+            ) : rule.cidr_blocks
             description       = rule.description
           }
         ]
@@ -24,7 +27,7 @@ locals {
 }
 
 resource "yandex_vpc_security_group" "server_sg" {
-  for_each   = var.servers
+  for_each   = var.servers_config
   name       = "${each.key}-sg"
   network_id = var.network_id
 
@@ -56,7 +59,7 @@ resource "yandex_vpc_security_group" "server_sg" {
 }
 
 resource "yandex_compute_disk" "server_disk" {
-  for_each = var.servers
+  for_each = var.servers_config
   zone     = var.zone
 
   name     = "${each.key}-disk"
@@ -65,7 +68,7 @@ resource "yandex_compute_disk" "server_disk" {
 }
 
 resource "yandex_compute_instance" "servers" {
-  for_each    = var.servers
+  for_each    = var.servers_config
   zone        = var.zone
 
   name        = each.key

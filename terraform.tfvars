@@ -13,13 +13,9 @@ ssh_access_rules = {
     ip_address  = "176.124.203.177/32"
     description = "My home IP"
   }
-  "office" = {
-    ip_address  = "176.124.203.177/32"
-    description = "Office IP"
-  }
 }
 
-servers = {
+servers_config = {
   "bastion" = {
     is_public = true
     cores     = 2

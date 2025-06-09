@@ -1,4 +1,4 @@
-variable "servers" {
+variable "servers_config" {
   description = "Конфигурация серверов"
   type = map(object({
     is_public = bool
