@@ -19,8 +19,7 @@ ssh_access_rules = {
   }
 }
 
-# Конфигурация серверов
-servers_config = {
+servers = {
   "bastion" = {
     is_public = true
     cores     = 2

@@ -39,7 +39,7 @@ module "postgres" {
 module "compute-cloud" {
   source = "./modules/compute-cloud"
   
-  servers_config = var.servers_config
+  servers = var.servers
   network_id     = module.vpc.vpc_id
 
   public_subnet_id = module.vpc.public_subnet_id

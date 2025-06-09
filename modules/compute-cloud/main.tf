@@ -1,6 +1,6 @@
 locals {
   ssh_processed_servers = {
-    for server_name, server_config in var.servers_config : server_name => {
+    for server_name, server_config in var.servers : server_name => {
       is_public = server_config.is_public
       cores     = server_config.cores
       memory    = server_config.memory
@@ -16,6 +16,7 @@ locals {
             description       = rule.description
           }
         ]
+        
         egress_rules = server_config.sg_config.egress_rules
       }
     }
@@ -23,12 +24,13 @@ locals {
 }
 
 resource "yandex_vpc_security_group" "server_sg" {
-  for_each   = var.servers_config
+  for_each   = var.servers
   name       = "${each.key}-sg"
   network_id = var.network_id
 
   dynamic "ingress" {
     for_each = local.ssh_processed_servers[each.key].sg_config.ingress_rules
+
     content {
       protocol          = ingress.value.protocol
       from_port         = ingress.value.port_range.from
@@ -41,6 +43,7 @@ resource "yandex_vpc_security_group" "server_sg" {
 
   dynamic "egress" {
     for_each = local.ssh_processed_servers[each.key].sg_config.egress_rules
+    
     content {
       protocol          = egress.value.protocol
       from_port         = egress.value.port_range.from
@@ -53,17 +56,19 @@ resource "yandex_vpc_security_group" "server_sg" {
 }
 
 resource "yandex_compute_disk" "server_disk" {
-  for_each = var.servers_config
+  for_each = var.servers
+  zone     = var.zone
+
   name     = "${each.key}-disk"
   size     = each.value.disk_size
-  zone     = var.zone
   image_id = each.value.image_id
 }
 
 resource "yandex_compute_instance" "servers" {
-  for_each    = var.servers_config
-  name        = each.key
+  for_each    = var.servers
   zone        = var.zone
+
+  name        = each.key
   platform_id = "standard-v3"
 
   resources {

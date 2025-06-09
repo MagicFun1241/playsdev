@@ -66,7 +66,7 @@ variable "ssh_access_rules" {
   }
 }
 
-variable "servers_config" {
+variable "servers" {
   description = "Конфигурация серверов"
   type = map(object({
     is_public = bool
