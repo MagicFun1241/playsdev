@@ -1,0 +1,5 @@
+FROM webdevops/php-apache
+
+COPY ./apache /app
+
+EXPOSE 80

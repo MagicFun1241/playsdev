@@ -1,0 +1,22 @@
+services:
+  nginx:
+    image: magicfun/playsdev-nginx:latest
+    ports:
+      - "80:80"re
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt
+    depends_on:
+      - apache
+      - fallback-nginx
+
+  apache:
+    image: magicfun/playsdev-apache:latest
+    ports:
+      - "8090:80"
+
+  fallback-nginx:
+    image: magicfun/playsdev-fallback-nginx:latest
+    ports:
+      - "8080:80"
+
