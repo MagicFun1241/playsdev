@@ -5,18 +5,13 @@ RUN apt-get update && \
         php8.2 \
         php8.2-cli \
         php8.2-common \
-        php8.2-curl \
-        php8.2-gd \
-        php8.2-json \
-        php8.2-mbstring \
-        php8.2-mysql \
-        php8.2-xml \
-        php8.2-zip \
         libapache2-mod-php8.2 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN a2enmod php8.2
+RUN echo "LoadModule php8_module /usr/lib/apache2/modules/libphp8.2.so" >> /usr/local/apache2/conf/httpd.conf && \
+    echo "AddType application/x-httpd-php .php" >> /usr/local/apache2/conf/httpd.conf && \
+    echo "DirectoryIndex index.php index.html" >> /usr/local/apache2/conf/httpd.conf
 
 COPY ./apache /usr/local/apache2/htdocs/
 

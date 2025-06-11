@@ -2,18 +2,6 @@
 
 set -e
 
-if ! docker info | grep -q "Username:"; then
-    echo "Not logged in to Docker Hub. Please run 'docker login' first."
-    read -p "Do you want to login now? (y/n): " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        docker login
-    else
-        echo "Cannot push images without Docker Hub authentication."
-        exit 1
-    fi
-fi
-
 echo "Starting build and push process..."
 
 echo "Building nginx image for amd64..."
