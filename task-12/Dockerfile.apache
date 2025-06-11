@@ -2,14 +2,17 @@ FROM httpd:2.4
 
 RUN apt-get update && \
     apt-get install -y \
-        php8.2 \
-        php8.2-cli \
-        php8.2-common \
-        libapache2-mod-php8.2 && \
+        php \
+        libapache2-mod-php && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN echo "LoadModule php8_module /usr/lib/apache2/modules/libphp8.2.so" >> /usr/local/apache2/conf/httpd.conf && \
+RUN find /usr -name "*libphp*" -type f 2>/dev/null | head -1 | xargs -I {} cp {} /usr/local/apache2/modules/libphp.so
+
+RUN echo "LoadModule mpm_prefork_module modules/mod_mpm_prefork.so" >> /usr/local/apache2/conf/httpd.conf && \
+    sed -i 's/LoadModule mpm_event_module/#LoadModule mpm_event_module/' /usr/local/apache2/conf/httpd.conf
+
+RUN echo "LoadModule php_module modules/libphp.so" >> /usr/local/apache2/conf/httpd.conf && \
     echo "AddType application/x-httpd-php .php" >> /usr/local/apache2/conf/httpd.conf && \
     echo "DirectoryIndex index.php index.html" >> /usr/local/apache2/conf/httpd.conf
 
