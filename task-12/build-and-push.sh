@@ -2,11 +2,6 @@
 
 set -e
 
-if ! docker info >/dev/null 2>&1; then
-    echo "Docker is not running. Please start Docker and try again."
-    exit 1
-fi
-
 if ! docker info | grep -q "Username:"; then
     echo "Not logged in to Docker Hub. Please run 'docker login' first."
     read -p "Do you want to login now? (y/n): " -n 1 -r
@@ -21,24 +16,24 @@ fi
 
 echo "Starting build and push process..."
 
-echo "Building nginx image..."
-docker build -f Dockerfile.nginx -t magicfun/playsdev-nginx:latest .
+echo "Building nginx image for amd64..."
+docker build --platform linux/amd64 -f Dockerfile.nginx -t magicfun/playsdev-nginx:latest .
 echo "Built magicfun/playsdev-nginx:latest"
 
 echo "Pushing nginx image to Docker Hub..."
 docker push magicfun/playsdev-nginx:latest
 echo "Pushed magicfun/playsdev-nginx:latest"
 
-echo "Building apache image..."
-docker build -f Dockerfile.apache -t magicfun/playsdev-apache:latest .
+echo "Building apache image for amd64..."
+docker build --platform linux/amd64 -f Dockerfile.apache -t magicfun/playsdev-apache:latest .
 echo "Built magicfun/playsdev-apache:latest"
 
 echo "Pushing apache image to Docker Hub..."
 docker push magicfun/playsdev-apache:latest
 echo "Pushed magicfun/playsdev-apache:latest"
 
-echo "Building fallback-nginx image..."
-docker build -f Dockerfile.fallback-nginx -t magicfun/playsdev-fallback-nginx:latest .
+echo "Building fallback-nginx image for amd64..."
+docker build --platform linux/amd64 -f Dockerfile.fallback-nginx -t magicfun/playsdev-fallback-nginx:latest .
 echo "Built magicfun/playsdev-fallback-nginx:latest"
 
 echo "Pushing fallback-nginx image to Docker Hub..."

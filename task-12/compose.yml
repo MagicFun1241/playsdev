@@ -2,7 +2,7 @@ services:
   nginx:
     image: magicfun/playsdev-nginx:latest
     ports:
-      - "80:80"re
+      - "80:80"
       - "443:443"
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt
