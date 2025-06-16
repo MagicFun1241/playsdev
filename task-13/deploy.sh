@@ -93,6 +93,10 @@ yc serverless container revision deploy \
 
 echo "Fallback nginx container created: $FALLBACK_CONTAINER_ID"
 
+yc serverless container allow-unauthenticated-invoke $NGINX_CONTAINER_ID
+yc serverless container allow-unauthenticated-invoke $APACHE_CONTAINER_ID
+yc serverless container allow-unauthenticated-invoke $FALLBACK_CONTAINER_ID
+
 echo "Creating API Gateway..."
 
 cat >api-gateway-spec.yaml <<EOF
