@@ -2,8 +2,9 @@ FROM php:8.1-apache
 
 COPY apache/ /var/www/html/
 
-RUN echo 'Listen ${PORT}' > /etc/apache2/ports.conf && \
-    echo '<VirtualHost *:${PORT}>' > /etc/apache2/sites-available/000-default.conf && \
+RUN echo 'Listen ${PORT}' > /etc/apache2/ports.conf
+
+RUN echo '<VirtualHost *:${PORT}>' > /etc/apache2/sites-available/000-default.conf && \
     echo '    DocumentRoot /var/www/html' >> /etc/apache2/sites-available/000-default.conf && \
     echo '    ErrorLog ${APACHE_LOG_DIR}/error.log' >> /etc/apache2/sites-available/000-default.conf && \
     echo '    CustomLog ${APACHE_LOG_DIR}/access.log combined' >> /etc/apache2/sites-available/000-default.conf && \
