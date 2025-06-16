@@ -1,0 +1,123 @@
+user nginx;
+worker_processes auto;
+error_log /var/log/nginx/error.log warn;
+pid /var/run/nginx.pid;
+
+load_module /usr/lib/nginx/modules/ngx_http_image_filter_module.so;
+load_module /usr/lib/nginx/modules/ndk_http_module.so;
+load_module /usr/lib/nginx/modules/ngx_http_lua_module.so;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log;
+
+    gzip on;
+    gzip_disable "msie6";
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_buffers 16 8k;
+    gzip_http_version 1.1;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+    
+    upstream redblue {
+        server 127.0.0.1:8082;
+        server 127.0.0.1:8083;
+    }
+
+    server {
+        listen 127.0.0.1:8082;
+        server_name red;
+        
+        location / {
+            default_type text/html;
+            return 200 '<html><head><meta charset="UTF-8"></head><body style="background-color: red; color: white;"><h1>Red Page</h1></body></html>';
+        }
+    }
+
+    server {
+        listen 127.0.0.1:8083;
+        server_name blue;
+        
+        location / {
+            default_type text/html;
+            return 200 '<html><head><meta charset="UTF-8"></head><body style="background-color: blue; color: white;"><h1>Blue Page</h1></body></html>';
+        }
+    }
+
+    server {
+        listen ${PORT};
+        server_name _;
+
+        root /var/www/html;
+        index index.html;
+
+        # Основные location'ы
+        location = / {
+            try_files $uri $uri/ =404;
+        }
+
+        location = /forbidden {
+            deny all;
+        }
+
+        location = /otherpage {
+            try_files $uri $uri/ =404;
+        }
+
+        location = /redblue {
+            proxy_pass http://redblue;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location ~ ^/image1/(?<file>.+\.jpg)$ {
+            image_filter rotate 180;
+            alias /var/www/images/$file;
+            add_header Content-Type image/jpeg;
+        }
+
+        location ~ ^/image2/(?<file>.+\.png)$ {
+            alias /var/www/images/$file;
+            add_header Content-Type image/png;
+        }
+
+        location = /cpu {
+            default_type text/plain;
+            content_by_lua_block {
+                local fh = io.popen("cat /proc/loadavg")
+                if fh then
+                    local result = fh:read("*a")
+                    fh:close()
+                    ngx.say("CPU Load: " .. result)
+                else
+                    ngx.say("Error CPU Load")
+                end
+            }
+        }
+
+        location = /music {
+            alias /var/www/html/playsdev.mp3;
+            add_header Content-Disposition 'attachment; filename="playsdev.mp3"';
+            default_type audio/mpeg;
+            access_log off;
+        }
+
+        location = /info.php {
+            return 302 /api/info.php;
+        }
+        
+        location = /secondpage {
+            return 302 /api/secondpage;
+        }
+    }
+}

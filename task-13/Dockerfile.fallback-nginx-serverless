@@ -1,0 +1,16 @@
+FROM nginx:alpine
+
+RUN apk add --no-cache 
+
+RUN mkdir -p /var/www/html
+
+COPY fallback-nginx-serverless/html/ /var/www/html/
+COPY fallback-nginx-serverless/nginx.conf.template /etc/nginx/nginx.conf.template
+
+RUN echo '#!/bin/sh' > /start.sh && \
+    echo 'echo "Starting on port $PORT"' >> /start.sh && \
+    echo 'envsubst < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf' >> /start.sh && \
+    echo 'nginx -g "daemon off;"' >> /start.sh && \
+    chmod +x /start.sh
+
+CMD ["/start.sh"] 

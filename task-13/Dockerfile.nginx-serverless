@@ -1,0 +1,18 @@
+FROM alpine:3.22
+
+RUN apk add --no-cache gettext nginx nginx-mod-http-lua nginx-mod-http-image-filter
+
+RUN mkdir -p /var/www/html /var/www/images /var/log/nginx /var/run
+
+COPY nginx-serverless/html/ /var/www/html/
+COPY nginx-serverless/images/ /var/www/images/
+
+COPY nginx-serverless/nginx.conf.template /etc/nginx/nginx.conf.template
+
+RUN echo '#!/bin/sh' > /start.sh && \
+    echo 'echo "Starting on port $PORT"' >> /start.sh && \
+    echo 'envsubst '\''$PORT'\'' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf' >> /start.sh && \
+    echo 'nginx -g "daemon off;"' >> /start.sh && \
+    chmod +x /start.sh
+
+CMD ["/start.sh"] 

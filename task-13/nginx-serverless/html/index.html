@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Главная страница</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Добро пожаловать!</h1>
+        <ul>
+            <li><a href="/otherpage">Перейти на другую страничку</a></li>
+            <li><a href="https://vk.com/magicfun1241">Перейти на другую страничку ВК</a></li>
+            <li><a href="/secondpage">Вторая страница (обрабатывается NGINX)</a></li>
+
+            <br>
+            <li><a href="/music">Скачать музыку</a></li>
+            <li><a href="/info.php">Информация о PHP сервере (Apache)</a></li>
+            <li><a href="/redblue">Redblue</a></li>
+            <li><a href="/cpu">CPU Load</a></li>
+
+            <br>
+            <li><a href="/image1/test.jpg">Image 1</a></li>
+            <li><a href="/image2/test.png">Image 2</a></li>
+
+            <br>
+            <li><a href="/forbidden">Forbidden</a></li>
+        </ul>
+    </div>
+</body>
+</html> 

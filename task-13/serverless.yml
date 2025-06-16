@@ -1,0 +1,84 @@
+service: playsdev-serverless
+
+provider:
+  name: yandex
+  runtime: custom
+  folder: ${env:YC_FOLDER_ID}
+  
+functions:
+  nginx-balancer:
+    name: nginx-balancer
+    runtime: container
+    image: magicfun/playsdev-nginx-serverless:latest
+    environment:
+      PORT: 8080
+    memory: 128
+    timeout: 30
+    
+  apache-backend:
+    name: apache-backend
+    runtime: container
+    image: magicfun/playsdev-apache-serverless:latest
+    environment:
+      PORT: 8080
+    memory: 256
+    timeout: 30
+    
+  fallback-nginx:
+    name: fallback-nginx
+    runtime: container
+    image: magicfun/playsdev-fallback-nginx-serverless:latest
+    environment:
+      PORT: 8080
+    memory: 128
+    timeout: 30
+
+resources:
+  api-gateway:
+    name: playsdev-api-gateway
+    spec:
+      openapi: "3.0.0"
+      info:
+        title: PlaysDev API Gateway
+        version: 1.0.0
+      paths:
+        /:
+          get:
+            x-yc-apigateway-integration:
+              type: cloud_functions
+              function_id: ${functions.nginx-balancer.id}
+        /info.php:
+          get:
+            x-yc-apigateway-integration:
+              type: cloud_functions
+              function_id: ${functions.apache-backend.id}
+        /secondpage:
+          get:
+            x-yc-apigateway-integration:
+              type: cloud_functions
+              function_id: ${functions.fallback-nginx.id}
+        /redblue:
+          get:
+            x-yc-apigateway-integration:
+              type: cloud_functions
+              function_id: ${functions.nginx-balancer.id}
+        /cpu:
+          get:
+            x-yc-apigateway-integration:
+              type: cloud_functions
+              function_id: ${functions.nginx-balancer.id}
+        /music:
+          get:
+            x-yc-apigateway-integration:
+              type: cloud_functions
+              function_id: ${functions.nginx-balancer.id}
+        /image1/{file}:
+          get:
+            x-yc-apigateway-integration:
+              type: cloud_functions
+              function_id: ${functions.nginx-balancer.id}
+        /image2/{file}:
+          get:
+            x-yc-apigateway-integration:
+              type: cloud_functions
+              function_id: ${functions.nginx-balancer.id} 
