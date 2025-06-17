@@ -57,7 +57,7 @@ http {
         }
 
         location = /redblue {            
-            proxy_pass $backend_url;
+            proxy_pass http://red-page:8080;
 
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;

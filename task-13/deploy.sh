@@ -13,8 +13,9 @@ RED_FUNCTION_NAME="red-page"
 BLUE_FUNCTION_NAME="blue-page"
 API_GATEWAY_NAME="playsdev-api-gateway"
 
-NETWORK_NAME="network18"
-SUBNET_NAME="subnet18"
+NETWORK_NAME="default"
+SUBNET_A_NAME="default-ru-central1-a"
+SUBNET_B_NAME="default-ru-central1-b"
 
 echo "Configuring Docker for Container Registry..."
 yc container registry configure-docker
@@ -32,25 +33,38 @@ else
   echo "Using existing VPC network: $NETWORK_ID"
 fi
 
-SUBNET_ID=$(yc vpc subnet get $SUBNET_NAME --format json 2>/dev/null | jq -r '.id' || echo "")
-
-if [ -z "$SUBNET_ID" ]; then
-  echo "Creating new subnet..."
+SUBNET_A_ID=$(yc vpc subnet get $SUBNET_A_NAME --format json 2>/dev/null | jq -r '.id' || echo "")
+if [ -z "$SUBNET_A_ID" ]; then
   yc vpc subnet create \
-    --name $SUBNET_NAME \
+    --name $SUBNET_A_NAME \
     --folder-id $YC_FOLDER_ID \
     --network-id $NETWORK_ID \
-    --range 10.0.0.0/24 \
+    --range 10.0.1.0/24 \
     --zone ru-central1-a \
-    --description "Subnet for PlaysDev containers"
-
-  SUBNET_ID=$(yc vpc subnet get $SUBNET_NAME --format json | jq -r '.id')
+    --description "Subnet A for PlaysDev containers"
+  SUBNET_A_ID=$(yc vpc subnet get $SUBNET_A_NAME --format json | jq -r '.id')
 else
-  echo "Using existing subnet: $SUBNET_ID"
+  echo "Using existing subnet A: $SUBNET_A_ID"
 fi
 
+SUBNET_B_ID=$(yc vpc subnet get $SUBNET_B_NAME --format json 2>/dev/null | jq -r '.id' || echo "")
+if [ -z "$SUBNET_B_ID" ]; then
+  yc vpc subnet create \
+    --name $SUBNET_B_NAME \
+    --folder-id $YC_FOLDER_ID \
+    --network-id $NETWORK_ID \
+    --range 10.0.2.0/24 \
+    --zone ru-central1-b \
+    --description "Subnet B for PlaysDev containers"
+  SUBNET_B_ID=$(yc vpc subnet get $SUBNET_B_NAME --format json | jq -r '.id')
+else
+  echo "Using existing subnet B: $SUBNET_B_ID"
+fi
+
+ALL_SUBNETS="$SUBNET_A_ID,$SUBNET_B_ID"
+
 echo "Network ID: $NETWORK_ID"
-echo "Subnet ID: $SUBNET_ID"
+echo "Subnets: $ALL_SUBNETS"
 
 docker build --platform linux/amd64 -f Dockerfile.nginx-serverless -t cr.yandex/$REGISTRY_ID/nginx-balancer:latest .
 docker build --platform linux/amd64 -f Dockerfile.apache-serverless -t cr.yandex/$REGISTRY_ID/apache-backend:latest .
@@ -74,6 +88,7 @@ if [ -z "$RED_CONTAINER_ID" ]; then
     --name $RED_FUNCTION_NAME \
     --folder-id $YC_FOLDER_ID \
     --description "Red Page for PlaysDev"
+
   RED_CONTAINER_ID=$(yc serverless container get $RED_FUNCTION_NAME --format json | jq -r '.id')
 fi
 
@@ -86,7 +101,7 @@ yc serverless container revision deploy \
   --image cr.yandex/$REGISTRY_ID/red-page:latest \
   --service-account-id $YC_SERVICE_ACCOUNT_ID \
   --network-id $NETWORK_ID \
-  --subnets $SUBNET_ID
+  --subnets $ALL_SUBNETS
 
 echo "Red page container created"
 
@@ -98,6 +113,7 @@ if [ -z "$BLUE_CONTAINER_ID" ]; then
     --name $BLUE_FUNCTION_NAME \
     --folder-id $YC_FOLDER_ID \
     --description "Blue Page for PlaysDev"
+
   BLUE_CONTAINER_ID=$(yc serverless container get $BLUE_FUNCTION_NAME --format json | jq -r '.id')
 fi
 
@@ -110,7 +126,7 @@ yc serverless container revision deploy \
   --image cr.yandex/$REGISTRY_ID/blue-page:latest \
   --service-account-id $YC_SERVICE_ACCOUNT_ID \
   --network-id $NETWORK_ID \
-  --subnets $SUBNET_ID
+  --subnets $ALL_SUBNETS
 
 echo "Blue page container created"
 
@@ -122,6 +138,7 @@ if [ -z "$NGINX_CONTAINER_ID" ]; then
     --name $NGINX_FUNCTION_NAME \
     --folder-id $YC_FOLDER_ID \
     --description "Nginx Balancer for PlaysDev"
+
   NGINX_CONTAINER_ID=$(yc serverless container get $NGINX_FUNCTION_NAME --format json | jq -r '.id')
 fi
 
@@ -138,7 +155,7 @@ yc serverless container revision deploy \
   --environment RED_CONTAINER_URL=$RED_CONTAINER_URL,BLUE_CONTAINER_URL=$BLUE_CONTAINER_URL \
   --service-account-id $YC_SERVICE_ACCOUNT_ID \
   --network-id $NETWORK_ID \
-  --subnets $SUBNET_ID
+  --subnets $ALL_SUBNETS
 
 echo "Nginx balancer container created"
 
@@ -162,7 +179,7 @@ yc serverless container revision deploy \
   --image cr.yandex/$REGISTRY_ID/apache-backend:latest \
   --service-account-id $YC_SERVICE_ACCOUNT_ID \
   --network-id $NETWORK_ID \
-  --subnets $SUBNET_ID
+  --subnets $ALL_SUBNETS
 
 echo "Apache backend container created"
 
@@ -186,7 +203,7 @@ yc serverless container revision deploy \
   --image cr.yandex/$REGISTRY_ID/fallback-nginx:latest \
   --service-account-id $YC_SERVICE_ACCOUNT_ID \
   --network-id $NETWORK_ID \
-  --subnets $SUBNET_ID
+  --subnets $ALL_SUBNETS
 
 echo "Fallback nginx container created"
 
