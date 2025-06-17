@@ -4,8 +4,9 @@ set -e
 
 USE_NETWORK="false"
 
-YC_SERVICE_ACCOUNT_ID='ajeehh9i382dkksbnaid'
+YC_SERVICE_ACCOUNT_ID='aje9i647urk6u8t7t7oi'
 YC_FOLDER_ID='b1g2ch5fjo9qkvb4gkrb'
+
 REGISTRY_ID='crp54hhjchmpark0varh'
 
 NGINX_FUNCTION_NAME="nginx-balancer"
@@ -32,7 +33,7 @@ if [ "$USE_NETWORK" = "true" ]; then
     yc vpc network create \
       --name $NETWORK_NAME \
       --folder-id $YC_FOLDER_ID \
-      --description "Network for PlaysDev containers"
+      --description "Network containers"
     NETWORK_ID=$(yc vpc network get $NETWORK_NAME --format json | jq -r '.id')
   else
     echo "Using existing VPC network: $NETWORK_ID"
@@ -46,7 +47,7 @@ if [ "$USE_NETWORK" = "true" ]; then
       --network-id $NETWORK_ID \
       --range 10.0.1.0/24 \
       --zone ru-central1-a \
-      --description "Subnet A for PlaysDev containers"
+      --description "Subnet A containers"
     SUBNET_A_ID=$(yc vpc subnet get $SUBNET_A_NAME --format json | jq -r '.id')
   else
     echo "Using existing subnet A: $SUBNET_A_ID"
@@ -60,7 +61,7 @@ if [ "$USE_NETWORK" = "true" ]; then
       --network-id $NETWORK_ID \
       --range 10.0.2.0/24 \
       --zone ru-central1-b \
-      --description "Subnet B for PlaysDev containers"
+      --description "Subnet B containers"
     SUBNET_B_ID=$(yc vpc subnet get $SUBNET_B_NAME --format json | jq -r '.id')
   else
     echo "Using existing subnet B: $SUBNET_B_ID"
@@ -99,7 +100,7 @@ if [ -z "$RED_CONTAINER_ID" ]; then
   yc serverless container create \
     --name $RED_FUNCTION_NAME \
     --folder-id $YC_FOLDER_ID \
-    --description "Red Page for PlaysDev"
+    --description "Red Page"
 
   RED_CONTAINER_ID=$(yc serverless container get $RED_FUNCTION_NAME --format json | jq -r '.id')
 fi
@@ -123,7 +124,7 @@ if [ -z "$BLUE_CONTAINER_ID" ]; then
   yc serverless container create \
     --name $BLUE_FUNCTION_NAME \
     --folder-id $YC_FOLDER_ID \
-    --description "Blue Page for PlaysDev"
+    --description "Blue Page"
 
   BLUE_CONTAINER_ID=$(yc serverless container get $BLUE_FUNCTION_NAME --format json | jq -r '.id')
 fi
@@ -147,13 +148,19 @@ if [ -z "$NGINX_CONTAINER_ID" ]; then
   yc serverless container create \
     --name $NGINX_FUNCTION_NAME \
     --folder-id $YC_FOLDER_ID \
-    --description "Nginx Balancer for PlaysDev"
+    --description "Nginx Balancer"
 
   NGINX_CONTAINER_ID=$(yc serverless container get $NGINX_FUNCTION_NAME --format json | jq -r '.id')
 fi
 
 RED_CONTAINER_URL=$(yc serverless container get $RED_FUNCTION_NAME --format json | jq -r '.url')
 BLUE_CONTAINER_URL=$(yc serverless container get $BLUE_FUNCTION_NAME --format json | jq -r '.url')
+
+# Extract host from URL by removing https:// prefix and / suffix
+RED_CONTAINER_HOST=${RED_CONTAINER_URL#https://}
+RED_CONTAINER_HOST=${RED_CONTAINER_HOST%/}
+BLUE_CONTAINER_HOST=${BLUE_CONTAINER_URL#https://}
+BLUE_CONTAINER_HOST=${BLUE_CONTAINER_HOST%/}
 
 yc serverless container revision deploy \
   --container-id $NGINX_CONTAINER_ID \
@@ -162,7 +169,7 @@ yc serverless container revision deploy \
   --core-fraction 5 \
   --execution-timeout 30s \
   --image cr.yandex/$REGISTRY_ID/nginx-balancer:latest \
-  --environment RED_CONTAINER_URL=$RED_CONTAINER_URL,BLUE_CONTAINER_URL=$BLUE_CONTAINER_URL \
+  --environment RED_CONTAINER_URL=$RED_CONTAINER_URL,BLUE_CONTAINER_URL=$BLUE_CONTAINER_URL,RED_CONTAINER_HOST=$RED_CONTAINER_HOST,BLUE_CONTAINER_HOST=$BLUE_CONTAINER_HOST \
   --service-account-id $YC_SERVICE_ACCOUNT_ID \
   $NETWORK_PARAMS
 
@@ -175,7 +182,7 @@ if [ -z "$APACHE_CONTAINER_ID" ]; then
   yc serverless container create \
     --name $APACHE_FUNCTION_NAME \
     --folder-id $YC_FOLDER_ID \
-    --description "Apache Backend for PlaysDev"
+    --description "Apache Backend"
   APACHE_CONTAINER_ID=$(yc serverless container get $APACHE_FUNCTION_NAME --format json | jq -r '.id')
 fi
 
@@ -186,6 +193,7 @@ yc serverless container revision deploy \
   --core-fraction 5 \
   --execution-timeout 30s \
   --image cr.yandex/$REGISTRY_ID/apache-backend:latest \
+  --environment RED_CONTAINER_URL=$RED_CONTAINER_URL,BLUE_CONTAINER_URL=$BLUE_CONTAINER_URL \
   --service-account-id $YC_SERVICE_ACCOUNT_ID \
   $NETWORK_PARAMS
 
@@ -198,7 +206,7 @@ if [ -z "$FALLBACK_CONTAINER_ID" ]; then
   yc serverless container create \
     --name $FALLBACK_FUNCTION_NAME \
     --folder-id $YC_FOLDER_ID \
-    --description "Fallback Nginx for PlaysDev"
+    --description "Fallback Nginx"
   FALLBACK_CONTAINER_ID=$(yc serverless container get $FALLBACK_FUNCTION_NAME --format json | jq -r '.id')
 fi
 
@@ -241,6 +249,12 @@ paths:
         container_id: $NGINX_CONTAINER_ID
         service_account_id: $YC_SERVICE_ACCOUNT_ID
   /info.php:
+    get:
+      x-yc-apigateway-integration:
+        type: serverless_containers
+        container_id: $APACHE_CONTAINER_ID
+        service_account_id: $YC_SERVICE_ACCOUNT_ID
+  /redblue.php:
     get:
       x-yc-apigateway-integration:
         type: serverless_containers
@@ -320,7 +334,7 @@ yc serverless api-gateway create \
   --name $API_GATEWAY_NAME \
   --folder-id $YC_FOLDER_ID \
   --spec api-gateway-spec.yaml \
-  --description "API Gateway for PlaysDev with load balancing"
+  --description "API Gateway with load balancing"
 
 API_GATEWAY_DOMAIN=$(yc serverless api-gateway get $API_GATEWAY_NAME --format json | jq -r '.domain')
 
@@ -329,11 +343,3 @@ rm -f api-gateway-spec.yaml
 echo "Deployment completed successfully"
 echo ""
 echo "API Gateway domain: https://$API_GATEWAY_DOMAIN"
-echo ""
-echo "Available endpoints:"
-echo "Main page: https://$API_GATEWAY_DOMAIN/"
-echo "PHP Info: https://$API_GATEWAY_DOMAIN/info.php"
-echo "Second page: https://$API_GATEWAY_DOMAIN/secondpage"
-echo "Red/Blue balancing: https://$API_GATEWAY_DOMAIN/redblue"
-echo "CPU Load: https://$API_GATEWAY_DOMAIN/cpu"
-echo "Music: https://$API_GATEWAY_DOMAIN/music"

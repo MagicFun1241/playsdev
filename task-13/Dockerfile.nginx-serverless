@@ -11,7 +11,12 @@ COPY nginx-serverless/nginx.conf.template /etc/nginx/nginx.conf.template
 
 RUN echo '#!/bin/sh' > /start.sh && \
     echo 'echo "Starting on port $PORT"' >> /start.sh && \
-    echo 'envsubst '\''$PORT $RED_CONTAINER_URL $BLUE_CONTAINER_URL'\'' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf' >> /start.sh && \
+    echo 'echo "Red container URL: $RED_CONTAINER_URL"' >> /start.sh && \
+    echo 'echo "Blue container URL: $BLUE_CONTAINER_URL"' >> /start.sh && \
+    echo 'echo "Red container host: $RED_CONTAINER_HOST"' >> /start.sh && \
+    echo 'echo "Blue container host: $BLUE_CONTAINER_HOST"' >> /start.sh && \
+    echo 'envsubst '\''$PORT $RED_CONTAINER_URL $BLUE_CONTAINER_URL $RED_CONTAINER_HOST $BLUE_CONTAINER_HOST'\'' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf' >> /start.sh && \
+    echo 'cat /etc/nginx/nginx.conf' >> /start.sh && \
     echo 'nginx -g "daemon off;"' >> /start.sh && \
     chmod +x /start.sh
 

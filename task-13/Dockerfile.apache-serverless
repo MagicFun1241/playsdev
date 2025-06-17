@@ -10,7 +10,7 @@ RUN echo '<VirtualHost *:${PORT}>' > /etc/apache2/sites-available/000-default.co
     echo '    CustomLog ${APACHE_LOG_DIR}/access.log combined' >> /etc/apache2/sites-available/000-default.conf && \
     echo '</VirtualHost>' >> /etc/apache2/sites-available/000-default.conf
 
-RUN apt-get update && apt-get install -y gettext-base && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl gettext-base && rm -rf /var/lib/apt/lists/*
 
 RUN echo '#!/bin/bash' > /start.sh && \
     echo 'echo "Starting on port $PORT"' >> /start.sh && \
