@@ -2,6 +2,8 @@
 
 set -e
 
+USE_NETWORK="false"
+
 YC_SERVICE_ACCOUNT_ID='ajeehh9i382dkksbnaid'
 YC_FOLDER_ID='b1g2ch5fjo9qkvb4gkrb'
 REGISTRY_ID='crp54hhjchmpark0varh'
@@ -20,51 +22,61 @@ SUBNET_B_NAME="default-ru-central1-b"
 echo "Configuring Docker for Container Registry..."
 yc container registry configure-docker
 
-NETWORK_ID=$(yc vpc network get $NETWORK_NAME --format json 2>/dev/null | jq -r '.id' || echo "")
+if [ "$USE_NETWORK" = "true" ]; then
+  echo "Setting up network connectivity..."
+  
+  NETWORK_ID=$(yc vpc network get $NETWORK_NAME --format json 2>/dev/null | jq -r '.id' || echo "")
 
-if [ -z "$NETWORK_ID" ]; then
-  echo "Creating new VPC network..."
-  yc vpc network create \
-    --name $NETWORK_NAME \
-    --folder-id $YC_FOLDER_ID \
-    --description "Network for PlaysDev containers"
-  NETWORK_ID=$(yc vpc network get $NETWORK_NAME --format json | jq -r '.id')
+  if [ -z "$NETWORK_ID" ]; then
+    echo "Creating new VPC network..."
+    yc vpc network create \
+      --name $NETWORK_NAME \
+      --folder-id $YC_FOLDER_ID \
+      --description "Network for PlaysDev containers"
+    NETWORK_ID=$(yc vpc network get $NETWORK_NAME --format json | jq -r '.id')
+  else
+    echo "Using existing VPC network: $NETWORK_ID"
+  fi
+
+  SUBNET_A_ID=$(yc vpc subnet get $SUBNET_A_NAME --format json 2>/dev/null | jq -r '.id' || echo "")
+  if [ -z "$SUBNET_A_ID" ]; then
+    yc vpc subnet create \
+      --name $SUBNET_A_NAME \
+      --folder-id $YC_FOLDER_ID \
+      --network-id $NETWORK_ID \
+      --range 10.0.1.0/24 \
+      --zone ru-central1-a \
+      --description "Subnet A for PlaysDev containers"
+    SUBNET_A_ID=$(yc vpc subnet get $SUBNET_A_NAME --format json | jq -r '.id')
+  else
+    echo "Using existing subnet A: $SUBNET_A_ID"
+  fi
+
+  SUBNET_B_ID=$(yc vpc subnet get $SUBNET_B_NAME --format json 2>/dev/null | jq -r '.id' || echo "")
+  if [ -z "$SUBNET_B_ID" ]; then
+    yc vpc subnet create \
+      --name $SUBNET_B_NAME \
+      --folder-id $YC_FOLDER_ID \
+      --network-id $NETWORK_ID \
+      --range 10.0.2.0/24 \
+      --zone ru-central1-b \
+      --description "Subnet B for PlaysDev containers"
+    SUBNET_B_ID=$(yc vpc subnet get $SUBNET_B_NAME --format json | jq -r '.id')
+  else
+    echo "Using existing subnet B: $SUBNET_B_ID"
+  fi
+
+  ALL_SUBNETS="$SUBNET_A_ID,$SUBNET_B_ID"
+
+  echo "Network ID: $NETWORK_ID"
+  echo "Subnets: $ALL_SUBNETS"
+  
+  # Prepare network parameters for container deployments
+  NETWORK_PARAMS="--network-id $NETWORK_ID --subnets $ALL_SUBNETS"
 else
-  echo "Using existing VPC network: $NETWORK_ID"
+  echo "Skipping network setup - containers will be deployed without VPC connectivity"
+  NETWORK_PARAMS=""
 fi
-
-SUBNET_A_ID=$(yc vpc subnet get $SUBNET_A_NAME --format json 2>/dev/null | jq -r '.id' || echo "")
-if [ -z "$SUBNET_A_ID" ]; then
-  yc vpc subnet create \
-    --name $SUBNET_A_NAME \
-    --folder-id $YC_FOLDER_ID \
-    --network-id $NETWORK_ID \
-    --range 10.0.1.0/24 \
-    --zone ru-central1-a \
-    --description "Subnet A for PlaysDev containers"
-  SUBNET_A_ID=$(yc vpc subnet get $SUBNET_A_NAME --format json | jq -r '.id')
-else
-  echo "Using existing subnet A: $SUBNET_A_ID"
-fi
-
-SUBNET_B_ID=$(yc vpc subnet get $SUBNET_B_NAME --format json 2>/dev/null | jq -r '.id' || echo "")
-if [ -z "$SUBNET_B_ID" ]; then
-  yc vpc subnet create \
-    --name $SUBNET_B_NAME \
-    --folder-id $YC_FOLDER_ID \
-    --network-id $NETWORK_ID \
-    --range 10.0.2.0/24 \
-    --zone ru-central1-b \
-    --description "Subnet B for PlaysDev containers"
-  SUBNET_B_ID=$(yc vpc subnet get $SUBNET_B_NAME --format json | jq -r '.id')
-else
-  echo "Using existing subnet B: $SUBNET_B_ID"
-fi
-
-ALL_SUBNETS="$SUBNET_A_ID,$SUBNET_B_ID"
-
-echo "Network ID: $NETWORK_ID"
-echo "Subnets: $ALL_SUBNETS"
 
 docker build --platform linux/amd64 -f Dockerfile.nginx-serverless -t cr.yandex/$REGISTRY_ID/nginx-balancer:latest .
 docker build --platform linux/amd64 -f Dockerfile.apache-serverless -t cr.yandex/$REGISTRY_ID/apache-backend:latest .
@@ -100,8 +112,7 @@ yc serverless container revision deploy \
   --execution-timeout 30s \
   --image cr.yandex/$REGISTRY_ID/red-page:latest \
   --service-account-id $YC_SERVICE_ACCOUNT_ID \
-  --network-id $NETWORK_ID \
-  --subnets $ALL_SUBNETS
+  $NETWORK_PARAMS
 
 echo "Red page container created"
 
@@ -125,8 +136,7 @@ yc serverless container revision deploy \
   --execution-timeout 30s \
   --image cr.yandex/$REGISTRY_ID/blue-page:latest \
   --service-account-id $YC_SERVICE_ACCOUNT_ID \
-  --network-id $NETWORK_ID \
-  --subnets $ALL_SUBNETS
+  $NETWORK_PARAMS
 
 echo "Blue page container created"
 
@@ -154,8 +164,7 @@ yc serverless container revision deploy \
   --image cr.yandex/$REGISTRY_ID/nginx-balancer:latest \
   --environment RED_CONTAINER_URL=$RED_CONTAINER_URL,BLUE_CONTAINER_URL=$BLUE_CONTAINER_URL \
   --service-account-id $YC_SERVICE_ACCOUNT_ID \
-  --network-id $NETWORK_ID \
-  --subnets $ALL_SUBNETS
+  $NETWORK_PARAMS
 
 echo "Nginx balancer container created"
 
@@ -178,8 +187,7 @@ yc serverless container revision deploy \
   --execution-timeout 30s \
   --image cr.yandex/$REGISTRY_ID/apache-backend:latest \
   --service-account-id $YC_SERVICE_ACCOUNT_ID \
-  --network-id $NETWORK_ID \
-  --subnets $ALL_SUBNETS
+  $NETWORK_PARAMS
 
 echo "Apache backend container created"
 
@@ -202,8 +210,7 @@ yc serverless container revision deploy \
   --execution-timeout 30s \
   --image cr.yandex/$REGISTRY_ID/fallback-nginx:latest \
   --service-account-id $YC_SERVICE_ACCOUNT_ID \
-  --network-id $NETWORK_ID \
-  --subnets $ALL_SUBNETS
+  $NETWORK_PARAMS
 
 echo "Fallback nginx container created"
 
