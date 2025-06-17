@@ -9,21 +9,110 @@ REGISTRY_ID='crp54hhjchmpark0varh'
 NGINX_FUNCTION_NAME="nginx-balancer"
 APACHE_FUNCTION_NAME="apache-backend"
 FALLBACK_FUNCTION_NAME="fallback-nginx"
+RED_FUNCTION_NAME="red-page"
+BLUE_FUNCTION_NAME="blue-page"
 API_GATEWAY_NAME="playsdev-api-gateway"
+
+NETWORK_NAME="network18"
+SUBNET_NAME="subnet18"
 
 echo "Configuring Docker for Container Registry..."
 yc container registry configure-docker
 
-# Build and upload images
-echo "Building Docker images..."
+NETWORK_ID=$(yc vpc network get $NETWORK_NAME --format json 2>/dev/null | jq -r '.id' || echo "")
+
+if [ -z "$NETWORK_ID" ]; then
+  echo "Creating new VPC network..."
+  yc vpc network create \
+    --name $NETWORK_NAME \
+    --folder-id $YC_FOLDER_ID \
+    --description "Network for PlaysDev containers"
+  NETWORK_ID=$(yc vpc network get $NETWORK_NAME --format json | jq -r '.id')
+else
+  echo "Using existing VPC network: $NETWORK_ID"
+fi
+
+SUBNET_ID=$(yc vpc subnet get $SUBNET_NAME --format json 2>/dev/null | jq -r '.id' || echo "")
+
+if [ -z "$SUBNET_ID" ]; then
+  echo "Creating new subnet..."
+  yc vpc subnet create \
+    --name $SUBNET_NAME \
+    --folder-id $YC_FOLDER_ID \
+    --network-id $NETWORK_ID \
+    --range 10.0.0.0/24 \
+    --zone ru-central1-a \
+    --description "Subnet for PlaysDev containers"
+
+  SUBNET_ID=$(yc vpc subnet get $SUBNET_NAME --format json | jq -r '.id')
+else
+  echo "Using existing subnet: $SUBNET_ID"
+fi
+
+echo "Network ID: $NETWORK_ID"
+echo "Subnet ID: $SUBNET_ID"
 
 docker build --platform linux/amd64 -f Dockerfile.nginx-serverless -t cr.yandex/$REGISTRY_ID/nginx-balancer:latest .
 docker build --platform linux/amd64 -f Dockerfile.apache-serverless -t cr.yandex/$REGISTRY_ID/apache-backend:latest .
 docker build --platform linux/amd64 -f Dockerfile.fallback-nginx-serverless -t cr.yandex/$REGISTRY_ID/fallback-nginx:latest .
 
+docker build --platform linux/amd64 -f Dockerfile.red-serverless -t cr.yandex/$REGISTRY_ID/red-page:latest .
+docker build --platform linux/amd64 -f Dockerfile.blue-serverless -t cr.yandex/$REGISTRY_ID/blue-page:latest .
+
 docker push cr.yandex/$REGISTRY_ID/nginx-balancer:latest
 docker push cr.yandex/$REGISTRY_ID/apache-backend:latest
 docker push cr.yandex/$REGISTRY_ID/fallback-nginx:latest
+
+docker push cr.yandex/$REGISTRY_ID/red-page:latest
+docker push cr.yandex/$REGISTRY_ID/blue-page:latest
+
+echo "Creating red-page container..."
+RED_CONTAINER_ID=$(yc serverless container get $RED_FUNCTION_NAME --format json 2>/dev/null | jq -r '.id' || echo "")
+
+if [ -z "$RED_CONTAINER_ID" ]; then
+  yc serverless container create \
+    --name $RED_FUNCTION_NAME \
+    --folder-id $YC_FOLDER_ID \
+    --description "Red Page for PlaysDev"
+  RED_CONTAINER_ID=$(yc serverless container get $RED_FUNCTION_NAME --format json | jq -r '.id')
+fi
+
+yc serverless container revision deploy \
+  --container-id $RED_CONTAINER_ID \
+  --memory 128m \
+  --cores 1 \
+  --core-fraction 5 \
+  --execution-timeout 30s \
+  --image cr.yandex/$REGISTRY_ID/red-page:latest \
+  --service-account-id $YC_SERVICE_ACCOUNT_ID \
+  --network-id $NETWORK_ID \
+  --subnets $SUBNET_ID
+
+echo "Red page container created"
+
+echo "Creating blue-page container..."
+BLUE_CONTAINER_ID=$(yc serverless container get $BLUE_FUNCTION_NAME --format json 2>/dev/null | jq -r '.id' || echo "")
+
+if [ -z "$BLUE_CONTAINER_ID" ]; then
+  yc serverless container create \
+    --name $BLUE_FUNCTION_NAME \
+    --folder-id $YC_FOLDER_ID \
+    --description "Blue Page for PlaysDev"
+  BLUE_CONTAINER_ID=$(yc serverless container get $BLUE_FUNCTION_NAME --format json | jq -r '.id')
+fi
+
+yc serverless container revision deploy \
+  --container-id $BLUE_CONTAINER_ID \
+  --memory 128m \
+  --cores 1 \
+  --core-fraction 5 \
+  --execution-timeout 30s \
+  --image cr.yandex/$REGISTRY_ID/blue-page:latest \
+  --service-account-id $YC_SERVICE_ACCOUNT_ID \
+  --network-id $NETWORK_ID \
+  --subnets $SUBNET_ID
+
+echo "Blue page container created"
 
 echo "Creating nginx-balancer container..."
 NGINX_CONTAINER_ID=$(yc serverless container get $NGINX_FUNCTION_NAME --format json 2>/dev/null | jq -r '.id' || echo "")
@@ -36,6 +125,9 @@ if [ -z "$NGINX_CONTAINER_ID" ]; then
   NGINX_CONTAINER_ID=$(yc serverless container get $NGINX_FUNCTION_NAME --format json | jq -r '.id')
 fi
 
+RED_CONTAINER_URL=$(yc serverless container get $RED_FUNCTION_NAME --format json | jq -r '.url')
+BLUE_CONTAINER_URL=$(yc serverless container get $BLUE_FUNCTION_NAME --format json | jq -r '.url')
+
 yc serverless container revision deploy \
   --container-id $NGINX_CONTAINER_ID \
   --memory 128m \
@@ -43,11 +135,13 @@ yc serverless container revision deploy \
   --core-fraction 5 \
   --execution-timeout 30s \
   --image cr.yandex/$REGISTRY_ID/nginx-balancer:latest \
-  --service-account-id $YC_SERVICE_ACCOUNT_ID
+  --environment RED_CONTAINER_URL=$RED_CONTAINER_URL,BLUE_CONTAINER_URL=$BLUE_CONTAINER_URL \
+  --service-account-id $YC_SERVICE_ACCOUNT_ID \
+  --network-id $NETWORK_ID \
+  --subnets $SUBNET_ID
 
-echo "Nginx balancer container created: $NGINX_CONTAINER_ID"
+echo "Nginx balancer container created"
 
-# Apache Backend Container
 echo "Creating apache-backend container..."
 APACHE_CONTAINER_ID=$(yc serverless container get $APACHE_FUNCTION_NAME --format json 2>/dev/null | jq -r '.id' || echo "")
 
@@ -66,11 +160,12 @@ yc serverless container revision deploy \
   --core-fraction 5 \
   --execution-timeout 30s \
   --image cr.yandex/$REGISTRY_ID/apache-backend:latest \
-  --service-account-id $YC_SERVICE_ACCOUNT_ID
+  --service-account-id $YC_SERVICE_ACCOUNT_ID \
+  --network-id $NETWORK_ID \
+  --subnets $SUBNET_ID
 
-echo "Apache backend container created: $APACHE_CONTAINER_ID"
+echo "Apache backend container created"
 
-# Fallback Nginx Container
 echo "Creating fallback-nginx container..."
 FALLBACK_CONTAINER_ID=$(yc serverless container get $FALLBACK_FUNCTION_NAME --format json 2>/dev/null | jq -r '.id' || echo "")
 
@@ -89,13 +184,18 @@ yc serverless container revision deploy \
   --core-fraction 5 \
   --execution-timeout 30s \
   --image cr.yandex/$REGISTRY_ID/fallback-nginx:latest \
-  --service-account-id $YC_SERVICE_ACCOUNT_ID
+  --service-account-id $YC_SERVICE_ACCOUNT_ID \
+  --network-id $NETWORK_ID \
+  --subnets $SUBNET_ID
 
-echo "Fallback nginx container created: $FALLBACK_CONTAINER_ID"
+echo "Fallback nginx container created"
 
 yc serverless container allow-unauthenticated-invoke $NGINX_CONTAINER_ID
 yc serverless container allow-unauthenticated-invoke $APACHE_CONTAINER_ID
 yc serverless container allow-unauthenticated-invoke $FALLBACK_CONTAINER_ID
+
+yc serverless container allow-unauthenticated-invoke $RED_CONTAINER_ID
+yc serverless container allow-unauthenticated-invoke $BLUE_CONTAINER_ID
 
 echo "Creating API Gateway..."
 
@@ -133,6 +233,18 @@ paths:
       x-yc-apigateway-integration:
         type: serverless_containers
         container_id: $NGINX_CONTAINER_ID
+        service_account_id: $YC_SERVICE_ACCOUNT_ID
+  /red:
+    get:
+      x-yc-apigateway-integration:
+        type: serverless_containers
+        container_id: $RED_CONTAINER_ID
+        service_account_id: $YC_SERVICE_ACCOUNT_ID
+  /blue:
+    get:
+      x-yc-apigateway-integration:
+        type: serverless_containers
+        container_id: $BLUE_CONTAINER_ID
         service_account_id: $YC_SERVICE_ACCOUNT_ID
   /cpu:
     get:
@@ -201,11 +313,3 @@ echo "Second page: https://$API_GATEWAY_DOMAIN/secondpage"
 echo "Red/Blue balancing: https://$API_GATEWAY_DOMAIN/redblue"
 echo "CPU Load: https://$API_GATEWAY_DOMAIN/cpu"
 echo "Music: https://$API_GATEWAY_DOMAIN/music"
-
-# echo ""
-# echo "Created resources information:"
-# echo "Container Registry ID: $REGISTRY_ID"
-# echo "Nginx Container ID: $NGINX_CONTAINER_ID"
-# echo "Apache Container ID: $APACHE_CONTAINER_ID"
-# echo "Fallback Container ID: $FALLBACK_CONTAINER_ID"
-# echo "API Gateway Domain: $API_GATEWAY_DOMAIN"
