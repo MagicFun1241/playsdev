@@ -9,15 +9,15 @@ echo "Building Docker images..."
 
 # Build nginx image
 echo "Building nginx image..."
-docker build -f Dockerfile.nginx -t ${DOCKER_REGISTRY}/playsdev-nginx:${TAG} .
+docker build --platform linux/amd64 -f Dockerfile.nginx -t ${DOCKER_REGISTRY}/playsdev-nginx:${TAG} .
 
 # Build apache image
 echo "Building apache image..."
-docker build -f Dockerfile.apache -t ${DOCKER_REGISTRY}/playsdev-apache:${TAG} .
+docker build --platform linux/amd64 -f Dockerfile.apache -t ${DOCKER_REGISTRY}/playsdev-apache:${TAG} .
 
 # Build fallback-nginx image
 echo "Building fallback-nginx image..."
-docker build -f Dockerfile.fallback-nginx -t ${DOCKER_REGISTRY}/playsdev-fallback-nginx:${TAG} .
+docker build --platform linux/amd64 -f Dockerfile.fallback-nginx -t ${DOCKER_REGISTRY}/playsdev-fallback-nginx:${TAG} .
 
 echo "Pushing images to registry..."
 

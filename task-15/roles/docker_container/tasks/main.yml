@@ -27,11 +27,3 @@
     files:
       - compose.yml
     state: present
-
-- name: Show running containers
-  shell: docker ps
-  register: docker_ps
-
-- name: Display running containers
-  debug:
-    var: docker_ps.stdout_lines
