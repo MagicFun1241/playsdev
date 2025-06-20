@@ -12,7 +12,7 @@
     mode: '0644'
 
 - name: Pull Docker images
-  docker_image:
+  community.docker.docker_image:
     name: "{{ item }}"
     source: pull
     state: present
