@@ -33,8 +33,6 @@
       - curl
       - gnupg
       - lsb-release
-      - docker-ce
-      - docker-compose-plugin
     state: present
   when: ansible_os_family == "Debian"
 
@@ -50,10 +48,6 @@
     name:
       - dnf-plugins-core
       - curl
-      - python3-pip
-      - python3-setuptools
-      - python3-docker
-      - python3-requests
     state: present
   when: ansible_os_family == "RedHat"
 
