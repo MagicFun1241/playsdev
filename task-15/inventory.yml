@@ -1,0 +1,20 @@
+all:
+  children:
+    docker_servers:
+      hosts:
+        ubuntu_server:
+          ansible_host: 89.169.177.211
+          ansible_user: magicfun
+          ansible_os_family: Debian
+          docker_package_name: docker.io
+          docker_service_name: docker
+        fedora_server:
+          ansible_host: 89.169.184.219
+          ansible_user: magicfun
+          ansible_os_family: RedHat
+          docker_package_name: docker
+          docker_service_name: docker
+      vars:
+        ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+        project_name: playsdev
+        compose_file_path: /opt/playsdev/docker-compose.yml 

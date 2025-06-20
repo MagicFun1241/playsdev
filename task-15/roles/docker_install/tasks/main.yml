@@ -1,0 +1,84 @@
+---
+- name: Include OS-specific variables
+  include_vars: "{{ ansible_os_family }}.yml"
+
+- name: Update package cache 
+  apt:
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Add Docker GPG key 
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Add Docker repository 
+  apt_repository:
+    repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Update package cache 
+  apt:
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Install required packages for Docker 
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+      - docker-ce
+      - docker-compose-plugin
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Install Docker and Docker Compose 
+  apt:
+    name: "{{ docker_packages }}"
+    state: present
+  when: ansible_os_family == "Debian"
+  notify: restart docker
+
+- name: Install required packages for Docker
+  dnf:
+    name:
+      - dnf-plugins-core
+      - curl
+      - python3-pip
+      - python3-setuptools
+      - python3-docker
+      - python3-requests
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Add Docker repository
+  get_url:
+    url: https://download.docker.com/linux/fedora/docker-ce.repo
+    dest: /etc/yum.repos.d/docker-ce.repo
+    mode: '0644'
+  when: ansible_os_family == "RedHat"
+
+- name: Install Docker and Docker Compose
+  dnf:
+    name: "{{ docker_packages }}"
+    state: present
+  when: ansible_os_family == "RedHat"
+  notify: restart docker
+
+- name: Start and enable Docker service
+  systemd:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Add user to docker group
+  user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: yes

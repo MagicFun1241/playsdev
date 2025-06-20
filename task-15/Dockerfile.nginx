@@ -1,0 +1,14 @@
+FROM alpine:3.22
+
+RUN apk add --no-cache nginx nginx-mod-http-image-filter \
+     nginx-mod-http-lua
+
+COPY ./nginx/nginx.conf /etc/nginx/nginx.conf
+COPY ./nginx/images /var/www/images
+COPY ./nginx/html /var/www/html
+
+RUN rm -rf /var/www/html/secondpage
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"] 

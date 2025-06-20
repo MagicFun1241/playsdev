@@ -1,0 +1,37 @@
+---
+- name: Create project directory
+  file:
+    path: /opt/playsdev
+    state: directory
+    mode: '0755'
+
+- name: Copy compose.yml
+  copy:
+    src: "{{ playbook_dir }}/compose.yml"
+    dest: /opt/playsdev/compose.yml
+    mode: '0644'
+
+- name: Pull Docker images
+  docker_image:
+    name: "{{ item }}"
+    source: pull
+    state: present
+  loop:
+    - "magicfun/playsdev-nginx:latest"
+    - "magicfun/playsdev-apache:latest"
+    - "magicfun/playsdev-fallback-nginx:latest"
+
+- name: Start services
+  community.docker.docker_compose_v2:
+    project_src: /opt/playsdev
+    files:
+      - compose.yml
+    state: present
+
+- name: Show running containers
+  shell: docker ps
+  register: docker_ps
+
+- name: Display running containers
+  debug:
+    var: docker_ps.stdout_lines

@@ -1,0 +1,16 @@
+---
+- name: Deploy Docker
+  hosts: docker_servers
+  become: yes
+  gather_facts: yes
+  
+  roles:
+    - docker_install
+    - docker_container
+  
+  handlers:
+    - name: restart docker
+      systemd:
+        name: docker
+        state: restarted
+        enabled: yes 
